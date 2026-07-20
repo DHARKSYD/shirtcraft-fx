@@ -4,12 +4,12 @@
   "description": "ShirtCraft — Custom T-Shirt Design & E-Commerce Platform",
   "private": true,
   "scripts": {
-    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
-    "dev":         "concurrently -n CLIENT,SERVER -c cyan,green \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
-    "build":       "npm run build --prefix client",
-    "start":       "npm start --prefix server",
-    "seed":        "npm run seed --prefix server"
-  },
+  "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+  "dev":         "concurrently -n CLIENT,SERVER -c cyan,green \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+  "build":       "npm install --prefix client && npm run build --prefix client",
+  "start":       "npm start --prefix server",
+  "seed":        "npm run seed --prefix server"
+},
   "devDependencies": {
     "concurrently": "^8.2.2"
   },

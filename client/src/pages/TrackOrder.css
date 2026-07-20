@@ -1,0 +1,19 @@
+/* src/pages/TrackOrder.css */
+/* All tracking styles are in Driver.css — this file adds page-level overrides */
+
+.tracking-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Leaflet dark tile override */
+.leaflet-container {
+  background: #1a1a2e;
+}
+
+/* Hide leaflet attribution on small screens */
+@media (max-width: 640px) {
+  .leaflet-control-attribution { display: none; }
+}

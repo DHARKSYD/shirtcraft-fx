@@ -1,0 +1,43 @@
+{
+  "name": "shirtcraft-server",
+  "version": "1.0.0",
+  "description": "ShirtCraft backend API — Node.js / Express / MongoDB",
+  "main": "index.js",
+  "scripts": {
+    "start": "NODE_ENV=production node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest --runInBand",
+    "seed": "node utils/seed.js"
+  },
+  "keywords": [
+    "shirtcraft",
+    "ecommerce",
+    "express",
+    "mongodb"
+  ],
+  "author": "ShirtCraft",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.4.0",
+    "cors": "^2.8.0",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.3",
+    "express-rate-limit": "^7.5.0",
+    "express-session": "^1.19.0",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.5.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.2.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "socket.io": "^4.8.3"
+  }
+}

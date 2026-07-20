@@ -1,0 +1,19 @@
+/* src/pages/Admin/AdminUsers.css */
+
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.admin-action-btn:hover { filter: brightness(1.1); border-color: currentColor; }
+.admin-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }

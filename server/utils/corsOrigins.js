@@ -13,9 +13,19 @@
 // security downside to always allowing your own frontend's origin, and
 // gating it meant a misconfigured/missing NODE_ENV on the host could
 // turn into a CORS failure with no obvious cause.
+//
+// Vercel preview URLs do NOT look like "shirtcraft-dob-<anything>" — that
+// was a guess and it was wrong. Vercel's actual format is
+// "<project>-<hash-or-branch>-<team-slug>.vercel.app", e.g. the real one
+// seen in production logs:
+//   https://shirtcraft-h5l96sey6-david-orendu-benjamins-projects.vercel.app
+// So the wildcard has to have the team slug on the END, not "shirtcraft-dob"
+// on the start. Scoping it to that exact team slug (rather than a bare
+// "shirtcraft-*.vercel.app") means it only matches deploys under this
+// account, not any Vercel project anyone else might name similarly.
 const KNOWN_ORIGINS = [
-  'https://shirtcraft-dob.vercel.app',
-  'https://shirtcraft-dob-*.vercel.app', // Vercel preview deploys
+  'https://shirtcraft-dob.vercel.app', // production (custom Vercel alias)
+  'https://shirtcraft-*-david-orendu-benjamins-projects.vercel.app', // this account's preview deploys
 ];
 
 // Turns a wildcard pattern into a RegExp, escaping regex metacharacters

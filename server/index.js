@@ -64,6 +64,21 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
+// ── Path normalization ──────────────────────────────────────────
+// Every real route in this app lives under /api/* — there's no other
+// static or root route to collide with. If a client is ever pointed at
+// this server without the /api prefix (e.g. VITE_API_URL misconfigured
+// on Vercel), normalize it here rather than depending on that external
+// value being exactly right. This runs before rate limiting and routing
+// below, so a request for bare /auth/login is treated identically to
+// /api/auth/login in every respect, including the login rate limiter —
+// unlike the old bare-route mounts this replaces, nothing here can be
+// used to bypass it.
+app.use((req, _res, next) => {
+  if (!req.url.startsWith('/api/')) req.url = '/api' + req.url;
+  next();
+});
+
 // ── Rate limiting ────────────────────────────────────────────────
 // Generous global ceiling against accidental hammering / scraping...
 app.use('/api', rateLimit({
@@ -85,13 +100,9 @@ const authLimiter = rateLimit({
 });
 app.use(['/api/auth/login', '/api/auth/register', '/api/drivers/login', '/api/drivers/register', '/api/uploads/driver-document'], authLimiter);
 
-// API routes are intentionally mounted ONLY under /api (below). A previous
-// "backward compatibility" mount at bare /products, /auth, /orders was
-// removed: it covered just 3 of 8 route groups, and — since the rate
-// limiters above are scoped to /api/* — it let requests to those bare
-// paths skip login/registration rate limiting entirely. If the frontend
-// is calling bare paths instead of /api/..., the fix is VITE_API_URL on
-// Vercel (it must end in /api), not a server-side route.
+// API routes below are mounted under /api — the normalization middleware
+// above means callers get an identical result whether or not they
+// included that prefix themselves.
 
 // Session (needed for Passport OAuth flow only)
 app.use(session({

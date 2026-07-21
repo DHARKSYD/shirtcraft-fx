@@ -85,6 +85,13 @@ const authLimiter = rateLimit({
 });
 app.use(['/api/auth/login', '/api/auth/register', '/api/drivers/login', '/api/drivers/register', '/api/uploads/driver-document'], authLimiter);
 
+// Add this after your API routes in index.js (around line 87)
+// ── Non-api routes for backward compatibility ──
+app.use('/products', productRoutes);
+app.use('/auth', authRoutes);
+app.use('/orders', orderRoutes);
+// Add any other routes your frontend might be calling without /api
+
 // Session (needed for Passport OAuth flow only)
 app.use(session({
   secret:            process.env.SESSION_SECRET || 'shirtcraft_session_secret',

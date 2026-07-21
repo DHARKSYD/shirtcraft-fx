@@ -1,24 +1,49 @@
 // server/utils/corsOrigins.js
-//
-// CLIENT_URL is usually just the production frontend URL, but Vercel gives
-// every deploy its own preview URL too. Accepting a comma-separated list
-// here means the same Render backend can serve production and preview
-// deploys (and local dev) without redeploying every time a preview URL
-// changes.
-//
-//   CLIENT_URL=https://shirtcraft.vercel.app,https://shirtcraft-git-preview.vercel.app
-
 function getAllowedOrigins() {
   const raw = process.env.CLIENT_URL || 'http://localhost:5173';
-  return raw.split(',').map(s => s.trim()).filter(Boolean);
+  
+  // Split by comma and trim
+  let origins = raw.split(',').map(s => s.trim()).filter(Boolean);
+  
+  // Add common Vercel patterns if in production
+  if (process.env.NODE_ENV === 'production') {
+    // This allows all Vercel preview deployments for your project
+    origins.push('https://shirtcraft-dob.vercel.app');
+    origins.push('https://shirtcraft-dob-*.vercel.app');
+    // If your project name is different, adjust accordingly
+  }
+  
+  console.log('🔒 CORS allowed origins:', origins);
+  return origins;
 }
 
-// A cors()-compatible origin function: reflects the request's origin back
-// only if it's in the allow-list, otherwise blocks it. Requests with no
-// Origin header (server-to-server, curl, mobile apps) are allowed through.
 function corsOriginCheck(origin, callback) {
+  // Allow requests with no origin (like mobile apps, server-to-server)
+  if (!origin) {
+    return callback(null, true);
+  }
+  
   const allowed = getAllowedOrigins();
-  if (!origin || allowed.includes(origin)) return callback(null, true);
+  
+  // Check if origin matches any allowed pattern
+  const isAllowed = allowed.some(allowedOrigin => {
+    // Exact match
+    if (allowedOrigin === origin) return true;
+    
+    // Wildcard match for Vercel preview URLs (e.g., https://shirtcraft-dob-*.vercel.app)
+    if (allowedOrigin.includes('*')) {
+      const pattern = new RegExp('^' + allowedOrigin.replace(/\*/g, '.*') + '$');
+      return pattern.test(origin);
+    }
+    
+    return false;
+  });
+  
+  if (isAllowed) {
+    return callback(null, true);
+  }
+  
+  console.warn(`🚫 CORS blocked origin: ${origin}`);
   callback(new Error(`CORS: origin ${origin} is not allowed`));
 }
 

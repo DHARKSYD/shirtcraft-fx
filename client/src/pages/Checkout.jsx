@@ -144,7 +144,7 @@ export default function Checkout() {
                       <div>
                         <label className="input-label">State *</label>
                         <select className="input-field" value={address.state} onChange={e=>setAddress(a=>({...a,state:e.target.value}))}>
-                          {['Lagos','Abuja','Kano','Rivers','Oyo','Delta','Edo','Anambra','Enugu','Imo'].map(s=><option key={s} value={s}>{s}</option>)}
+                          {['Lagos','Abuja', 'Benue','Kano','Rivers','Oyo','Delta','Edo','Anambra','Enugu','Imo'].map(s=><option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                     </div>

@@ -85,12 +85,13 @@ const authLimiter = rateLimit({
 });
 app.use(['/api/auth/login', '/api/auth/register', '/api/drivers/login', '/api/drivers/register', '/api/uploads/driver-document'], authLimiter);
 
-// Add this after your API routes in index.js (around line 87)
-// ── Non-api routes for backward compatibility ──
-app.use('/products', productRoutes);
-app.use('/auth', authRoutes);
-app.use('/orders', orderRoutes);
-// Add any other routes your frontend might be calling without /api
+// API routes are intentionally mounted ONLY under /api (below). A previous
+// "backward compatibility" mount at bare /products, /auth, /orders was
+// removed: it covered just 3 of 8 route groups, and — since the rate
+// limiters above are scoped to /api/* — it let requests to those bare
+// paths skip login/registration rate limiting entirely. If the frontend
+// is calling bare paths instead of /api/..., the fix is VITE_API_URL on
+// Vercel (it must end in /api), not a server-side route.
 
 // Session (needed for Passport OAuth flow only)
 app.use(session({

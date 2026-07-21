@@ -15,7 +15,7 @@ const VEHICLE_TYPES = [
   { value:'van',        label:'Van',        icon:'🚐' },
   { value:'truck',      label:'Truck',      icon:'🚚' },
 ];
-const STATES = ['Lagos','Abuja','Kano','Rivers','Oyo','Delta','Edo','Anambra','Enugu','Imo','Ogun','Kaduna'];
+const STATES = ['Lagos','Abuja', 'Benue', 'Kano','Rivers','Oyo','Delta','Edo','Anambra','Enugu','Imo','Ogun','Kaduna'];
 const ID_TYPES = [
   { value:'nin',            label:"National ID (NIN)" },
   { value:'passport',       label:'International Passport' },

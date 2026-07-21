@@ -1,49 +1,67 @@
 // server/utils/corsOrigins.js
-function getAllowedOrigins() {
-  const raw = process.env.CLIENT_URL || 'http://localhost:5173';
-  
-  // Split by comma and trim
-  let origins = raw.split(',').map(s => s.trim()).filter(Boolean);
-  
-  // Add common Vercel patterns if in production
-  if (process.env.NODE_ENV === 'production') {
-    // This allows all Vercel preview deployments for your project
-    origins.push('https://shirtcraft-dob.vercel.app');
-    origins.push('https://shirtcraft-dob-*.vercel.app');
-    // If your project name is different, adjust accordingly
-  }
-  
-  console.log('🔒 CORS allowed origins:', origins);
-  return origins;
+//
+// CLIENT_URL is usually just the production frontend URL, but Vercel gives
+// every deploy its own preview URL too. Accepting a comma-separated list
+// here means the same Render backend can serve production and preview
+// deploys (and local dev) without redeploying every time a preview URL
+// changes.
+//
+//   CLIENT_URL=https://shirtcraft-dob.vercel.app,https://shirtcraft-git-preview.vercel.app
+
+// The project's known production frontend, included unconditionally —
+// not gated behind NODE_ENV === 'production' like before. There's no
+// security downside to always allowing your own frontend's origin, and
+// gating it meant a misconfigured/missing NODE_ENV on the host could
+// turn into a CORS failure with no obvious cause.
+const KNOWN_ORIGINS = [
+  'https://shirtcraft-dob.vercel.app',
+  'https://shirtcraft-dob-*.vercel.app', // Vercel preview deploys
+];
+
+// Turns a wildcard pattern into a RegExp, escaping regex metacharacters
+// first. The previous version only replaced "*" and left the literal
+// dots in ".vercel.app" unescaped, so they'd match "any character"
+// instead of a literal dot — harmless in practice here, but wrong.
+function wildcardToRegExp(pattern) {
+  const escaped = pattern
+    .split('*')
+    .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*');
+  return new RegExp(`^${escaped}$`);
 }
 
+function getAllowedOrigins() {
+  const raw = process.env.CLIENT_URL || 'http://localhost:5173';
+
+  // Split by comma, trim, and drop any trailing slash — a browser's
+  // Origin header never has one, so "https://foo.vercel.app/" pasted
+  // into CLIENT_URL would otherwise never match anything and fail
+  // silently (no error, just a CORS block with no obvious cause).
+  const configured = raw
+    .split(',')
+    .map(s => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  // De-duplicate in case CLIENT_URL already includes a known origin.
+  return [...new Set([...configured, ...KNOWN_ORIGINS])];
+}
+
+// A cors()-compatible origin function: reflects the request's origin back
+// only if it's in the allow-list, otherwise blocks it. Requests with no
+// Origin header (server-to-server, curl, mobile apps) are allowed through.
 function corsOriginCheck(origin, callback) {
-  // Allow requests with no origin (like mobile apps, server-to-server)
-  if (!origin) {
-    return callback(null, true);
-  }
-  
+  if (!origin) return callback(null, true);
+
   const allowed = getAllowedOrigins();
-  
-  // Check if origin matches any allowed pattern
-  const isAllowed = allowed.some(allowedOrigin => {
-    // Exact match
-    if (allowedOrigin === origin) return true;
-    
-    // Wildcard match for Vercel preview URLs (e.g., https://shirtcraft-dob-*.vercel.app)
-    if (allowedOrigin.includes('*')) {
-      const pattern = new RegExp('^' + allowedOrigin.replace(/\*/g, '.*') + '$');
-      return pattern.test(origin);
-    }
-    
-    return false;
-  });
-  
-  if (isAllowed) {
-    return callback(null, true);
-  }
-  
-  console.warn(`🚫 CORS blocked origin: ${origin}`);
+  const isAllowed = allowed.some(allowedOrigin =>
+    allowedOrigin.includes('*')
+      ? wildcardToRegExp(allowedOrigin).test(origin)
+      : allowedOrigin === origin
+  );
+
+  if (isAllowed) return callback(null, true);
+
+  console.warn(`🚫 CORS blocked origin: ${origin} — allowed: ${allowed.join(', ')}`);
   callback(new Error(`CORS: origin ${origin} is not allowed`));
 }
 

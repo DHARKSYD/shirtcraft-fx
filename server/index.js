@@ -123,18 +123,41 @@ if (passport.googleEnabled) {
     passport.authenticate('google', { scope: ['profile', 'email'], session: true })
   );
 
-  // Google callback
+  // Google callback - FIXED VERSION
   app.get('/api/auth/google/callback',
-    passport.authenticate('google', { session: true, failureRedirect: `${getAllowedOrigins()[0]}/login?error=google_failed` }),
+    passport.authenticate('google', { 
+      session: true, 
+      failureRedirect: `${getAllowedOrigins()[0]}/login?error=google_failed` 
+    }),
     (req, res) => {
-      // Send JWT back to frontend via URL param (handled by frontend callback page)
-      const token = req.user._jwtToken;
-      const name  = encodeURIComponent(req.user.name);
-      const email = encodeURIComponent(req.user.email);
-      const role  = req.user.role;
-      res.redirect(
-        `${getAllowedOrigins()[0]}/auth/callback?token=${token}&name=${name}&email=${email}&role=${role}`
-      );
+      try {
+        // Check if user and token exist
+        if (!req.user || !req.user._jwtToken) {
+          console.error('OAuth Error: No user or token found');
+          return res.redirect(`${getAllowedOrigins()[0]}/login?error=no_token`);
+        }
+
+        // Get the JWT token and user data
+        const token = req.user._jwtToken;
+        const name = encodeURIComponent(req.user.name || '');
+        const email = encodeURIComponent(req.user.email || '');
+        const role = req.user.role || 'customer';
+        
+        // Get the frontend URL - use CLIENT_URL from env or fallback to localhost
+        const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        
+        // Log for debugging
+        console.log('✅ OAuth Successful - Redirecting to:', frontendUrl);
+        console.log('User:', email, 'Role:', role);
+        
+        // Redirect to frontend callback with token
+        res.redirect(
+          `${frontendUrl}/auth/callback?token=${token}&name=${name}&email=${email}&role=${role}`
+        );
+      } catch (err) {
+        console.error('OAuth Callback Error:', err);
+        res.redirect(`${getAllowedOrigins()[0]}/login?error=callback_failed`);
+      }
     }
   );
 } else {

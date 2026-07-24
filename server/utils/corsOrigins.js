@@ -1,30 +1,4 @@
 // server/utils/corsOrigins.js
-//
-// CLIENT_URL is usually just the production frontend URL, but Vercel gives
-// every deploy its own preview URL too. Accepting a comma-separated list
-// here means the same Render backend can serve production and preview
-// deploys (and local dev) without redeploying every time a preview URL
-// changes.
-//
-//   CLIENT_URL=https://shirtcraft-dob.vercel.app,https://shirtcraft-git-preview.vercel.app
-
-// The project's known production frontend, included unconditionally —
-// not gated behind NODE_ENV === 'production' like before. There's no
-// security downside to always allowing your own frontend's origin, and
-// gating it meant a misconfigured/missing NODE_ENV on the host could
-// turn into a CORS failure with no obvious cause.
-//
-// Vercel preview URLs do NOT look like "shirtcraft-dob-<anything>" — that
-// was a guess and it was wrong. Vercel's actual format is
-// "<project>-<hash-or-branch>-<team-slug>.vercel.app", e.g. the real one
-// seen in production logs:
-//   https://shirtcraft-h5l96sey6-david-orendu-benjamins-projects.vercel.app
-// So the wildcard has to have the team slug on the END, not "shirtcraft-dob"
-// on the start. Scoping it to that exact team slug (rather than a bare
-// "shirtcraft-*.vercel.app") means it only matches deploys under this
-// account, not any Vercel project anyone else might name similarly.
-// server/utils/corsOrigins.js
-// server/utils/corsOrigins.js
 const KNOWN_ORIGINS = [
   'https://shirtcraft-dob.vercel.app',
   'https://shirtcraft-*-david-orendu-benjamins-projects.vercel.app',
@@ -60,17 +34,28 @@ function corsOriginCheck(origin, callback) {
   callback(new Error(`CORS: origin ${origin} is not allowed`));
 }
 
-// FIXED: More robust function with safety checks
+// FIXED: This function now works correctly
 function getPrimaryFrontendUrl() {
+  // Get the environment variable
   let clientUrl = process.env.CLIENT_URL || '';
   
-  // Remove "CLIENT_URL=" if someone accidentally included it
+  // Strip any "CLIENT_URL=" prefix if accidentally included
   clientUrl = clientUrl.replace(/^CLIENT_URL=/, '');
   
-  if (clientUrl) {
-    // Split by comma, take first, trim, remove trailing slash
-    const first = clientUrl.split(',')[0].trim().replace(/\/+$/, '');
-    return first;
+  // If we have a value, clean it up
+  if (clientUrl && clientUrl.length > 0) {
+    // Take first URL from comma-separated list
+    let url = clientUrl.split(',')[0];
+    // Trim whitespace
+    url = url.trim();
+    // Remove trailing slash
+    url = url.replace(/\/+$/, '');
+    return url;
+  }
+  
+  // Fallback for development
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:5173';
   }
   
   // Fallback for production

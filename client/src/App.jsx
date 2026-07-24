@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMe } from './store/slices/authSlice';
+import { BrowserRouter } from 'react-router-dom';
 
 // Layout
 import Navbar         from './components/Layout/Navbar';

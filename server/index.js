@@ -1,236 +1,298 @@
 // server/index.js — with Google OAuth, Socket.io, Driver routes
-require('dotenv').config();
-const express      = require('express');
-const http         = require('http');
-const mongoose     = require('mongoose');
-const cors         = require('cors');
-const helmet       = require('helmet');
-const morgan       = require('morgan');
-const session      = require('express-session');
-const rateLimit    = require('express-rate-limit');
-const cron         = require('node-cron');
-const passportConf = require('./config/passport');
-const { initSocket } = require('./config/socket');
-const { ensureDefaultData } = require('./utils/seed');
-const { corsOriginCheck, getAllowedOrigins, getPrimaryFrontendUrl } = require('./utils/corsOrigins');
-const { autoCancelUnpaidOrders } = require('./utils/orderMaintenance');
+require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const session = require("express-session");
+const rateLimit = require("express-rate-limit");
+const cron = require("node-cron");
+const passportConf = require("./config/passport");
+const { initSocket } = require("./config/socket");
+const { ensureDefaultData } = require("./utils/seed");
+const {
+  corsOriginCheck,
+  getAllowedOrigins,
+  getPrimaryFrontendUrl,
+} = require("./utils/corsOrigins");
+const { autoCancelUnpaidOrders } = require("./utils/orderMaintenance");
 
 // ── Fail fast on unsafe production config ──────────────────────────
-if (process.env.NODE_ENV === 'production') {
-  const missing = ['JWT_SECRET', 'SESSION_SECRET'].filter(k => !process.env[k]);
+if (process.env.NODE_ENV === "production") {
+  const missing = ["JWT_SECRET", "SESSION_SECRET"].filter(
+    (k) => !process.env[k],
+  );
   if (missing.length) {
-    console.error(`❌ Refusing to start in production without: ${missing.join(', ')}. Set these in your environment (see server/.env.example).`);
+    console.error(
+      `❌ Refusing to start in production without: ${missing.join(", ")}. Set these in your environment (see server/.env.example).`,
+    );
     process.exit(1);
   }
 }
 
 // ── Routes ───────────────────────────────────────────────────────
-const authRoutes    = require('./routes/auth');
-const userRoutes    = require('./routes/users');
-const productRoutes = require('./routes/products');
-const orderRoutes   = require('./routes/orders');
-const uploadRoutes  = require('./routes/uploads');
-const couponRoutes  = require('./routes/coupons');
-const adminRoutes   = require('./routes/admin');
-const driverRoutes  = require('./routes/drivers');
+const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/users");
+const productRoutes = require("./routes/products");
+const orderRoutes = require("./routes/orders");
+const uploadRoutes = require("./routes/uploads");
+const couponRoutes = require("./routes/coupons");
+const adminRoutes = require("./routes/admin");
+const driverRoutes = require("./routes/drivers");
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
-const PORT   = Number(process.env.PORT || 5000);
+const PORT = Number(process.env.PORT || 5000);
 
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // ── Middleware ────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(morgan('combined'));
-app.use(cors({
-  origin:      corsOriginCheck,
-  credentials: true,
-}));
-app.use(express.json({
-  limit: '10mb',
-  verify: (req, _res, buf) => { req.rawBody = buf; },
-}));
+app.use(morgan("combined"));
+app.use(
+  cors({
+    origin: corsOriginCheck,
+    credentials: true,
+  }),
+);
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 // ── Path normalization ──────────────────────────────────────────
 app.use((req, _res, next) => {
-  if (!req.url.startsWith('/api/')) req.url = '/api' + req.url;
+  if (!req.url.startsWith("/api/")) req.url = "/api" + req.url;
   next();
 });
 
 // ── Rate limiting ────────────────────────────────────────────────
-app.use('/api', rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many requests. Please slow down and try again shortly.' },
-}));
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 500,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      message: "Too many requests. Please slow down and try again shortly.",
+    },
+  }),
+);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many attempts. Please wait a few minutes and try again.' },
+  message: {
+    message: "Too many attempts. Please wait a few minutes and try again.",
+  },
 });
-app.use(['/api/auth/login', '/api/auth/register', '/api/drivers/login', '/api/drivers/register', '/api/uploads/driver-document'], authLimiter);
+app.use(
+  [
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/drivers/login",
+    "/api/drivers/register",
+    "/api/uploads/driver-document",
+  ],
+  authLimiter,
+);
 
 // Session (needed for Passport OAuth flow only)
-app.use(session({
-  secret:            process.env.SESSION_SECRET || 'shirtcraft_session_secret',
-  resave:            false,
-  saveUninitialized: false,
-  cookie:            { secure: process.env.NODE_ENV === 'production', maxAge: 10 * 60 * 1000 },
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "shirtcraft_session_secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 10 * 60 * 1000,
+    },
+  }),
+);
 app.use(passportConf.initialize());
 app.use(passportConf.session());
 
 // ── Google OAuth Routes ──────────────────────────────────────────
-const passport = require('passport');
+const passport = require("passport");
 
 if (passport.googleEnabled) {
   // Redirect to Google
-  app.get('/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'], session: true })
+  app.get(
+    "/api/auth/google",
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      session: true,
+    }),
   );
 
   // Google callback - COMPLETELY FIXED
-  app.get('/api/auth/google/callback',
-    passport.authenticate('google', { 
-      session: true, 
-      failureRedirect: `${getPrimaryFrontendUrl()}/login?error=google_failed` 
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", {
+      session: true,
+      failureRedirect: `${getPrimaryFrontendUrl()}/login?error=google_failed`,
     }),
     (req, res) => {
       try {
         // Get the frontend URL
         const frontendUrl = getPrimaryFrontendUrl();
-        
+
         // Debug logging
-        console.log('🔍 OAuth Callback Debug:');
-        console.log('  - Frontend URL:', frontendUrl);
-        console.log('  - CLIENT_URL env:', process.env.CLIENT_URL || 'NOT SET');
-        console.log('  - User exists:', !!req.user);
-        console.log('  - Token exists:', !!req.user?._jwtToken);
-        
+        console.log("🔍 OAuth Callback Debug:");
+        console.log("  - Frontend URL:", frontendUrl);
+        console.log("  - CLIENT_URL env:", process.env.CLIENT_URL || "NOT SET");
+        console.log("  - User exists:", !!req.user);
+        console.log("  - Token exists:", !!req.user?._jwtToken);
+
         // Check if user and token exist
         if (!req.user || !req.user._jwtToken) {
-          console.error('❌ OAuth Error: No user or token found');
+          console.error("❌ OAuth Error: No user or token found");
           return res.redirect(`${frontendUrl}/login?error=no_token`);
         }
 
         // Get user data
         const token = req.user._jwtToken;
-        const name = encodeURIComponent(req.user.name || '');
-        const email = encodeURIComponent(req.user.email || '');
-        const role = req.user.role || 'customer';
-        
+        const name = encodeURIComponent(req.user.name || "");
+        const email = encodeURIComponent(req.user.email || "");
+        const role = req.user.role || "customer";
+
         // Build the redirect URL - THIS IS THE CRITICAL PART
         const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&name=${name}&email=${email}&role=${role}`;
-        
-        console.log('✅ Redirecting to:', redirectUrl);
-        
+
+        console.log("✅ Redirecting to:", redirectUrl);
+
         // Send them to the frontend
         res.redirect(redirectUrl);
-        
       } catch (err) {
-        console.error('❌ OAuth Callback Error:', err);
+        console.error("❌ OAuth Callback Error:", err);
         const frontendUrl = getPrimaryFrontendUrl();
         res.redirect(`${frontendUrl}/login?error=callback_failed`);
       }
-    }
+    },
   );
 } else {
-  const googleDisabled = (req, res) => res.status(503).json({ 
-    message: 'Google sign-in is not configured on this server.' 
-  });
-  app.get('/api/auth/google', googleDisabled);
-  app.get('/api/auth/google/callback', googleDisabled);
+  const googleDisabled = (req, res) =>
+    res.status(503).json({
+      message: "Google sign-in is not configured on this server.",
+    });
+  app.get("/api/auth/google", googleDisabled);
+  app.get("/api/auth/google/callback", googleDisabled);
 }
 
 // ── API Routes ────────────────────────────────────────────────────
-app.use('/api/auth',     authRoutes);
-app.use('/api/users',    userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders',   orderRoutes);
-app.use('/api/uploads',  uploadRoutes);
-app.use('/api/coupons',  couponRoutes);
-app.use('/api/admin',    adminRoutes);
-app.use('/api/drivers',  driverRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/uploads", uploadRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/drivers", driverRoutes);
 
 // ── Health ────────────────────────────────────────────────────────
-app.get('/api/health', (_, res) => res.json({ status:'ok', time: new Date().toISOString() }));
+app.get("/api/health", (_, res) =>
+  res.json({ status: "ok", time: new Date().toISOString() }),
+);
 
 // ── Global error handler ──────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue || {})[0] || 'value';
-    const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+    const field = Object.keys(err.keyValue || {})[0] || "value";
+    const label = field
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (c) => c.toUpperCase());
     return res.status(409).json({
       message: `${label} "${err.keyValue?.[field]}" is already in use. Please use a different ${label.toLowerCase()}.`,
       field,
     });
   }
 
-  if (err.name === 'ValidationError') {
+  if (err.name === "ValidationError") {
     const first = Object.values(err.errors)[0];
-    return res.status(400).json({ message: first?.message || 'Validation failed.', field: first?.path });
+    return res
+      .status(400)
+      .json({
+        message: first?.message || "Validation failed.",
+        field: first?.path,
+      });
   }
 
-  if (err.name === 'CastError') {
+  if (err.name === "CastError") {
     return res.status(400).json({ message: `Invalid ${err.path}.` });
   }
 
   res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    message: err.message || "Internal server error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
 // ── Connect DB, start server, init Socket.io ─────────────────────
 const startServer = (port) => {
   const onError = (err) => {
-    if (err.code === 'EADDRINUSE' && port < 5010) {
+    if (err.code === "EADDRINUSE" && port < 5010) {
       const nextPort = port + 1;
       console.warn(`⚠️ Port ${port} is busy, trying ${nextPort}...`);
       startServer(nextPort);
       return;
     }
 
-    console.error('❌ Server failed to start:', err.message);
+    console.error("❌ Server failed to start:", err.message);
     process.exit(1);
   };
 
-  server.once('error', onError);
+  server.once("error", onError);
   server.listen(port, () => {
-    server.off('error', onError);
+    server.off("error", onError);
     console.log(`🚀 Server + Socket.io on http://localhost:${port}`);
     console.log(`📱 Frontend URL: ${getPrimaryFrontendUrl()}`);
-    console.log(`🔑 Google OAuth: ${passport.googleEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(
+      `🔑 Google OAuth: ${passport.googleEnabled ? "ENABLED" : "DISABLED"}`,
+    );
+    // Add this after the server starts
+    console.log(`📱 Frontend URL: ${getPrimaryFrontendUrl()}`);
+    console.log(
+      `🔑 Google OAuth: ${passport.googleEnabled ? "ENABLED" : "DISABLED"}`,
+    );
+    console.log(`📝 Raw CLIENT_URL: ${process.env.CLIENT_URL || "NOT SET"}`);
   });
 };
 
 mongoose
-  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/shirtcraft')
+  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/shirtcraft")
   .then(async () => {
-    console.log('✅ MongoDB connected');
+    console.log("✅ MongoDB connected");
     await ensureDefaultData();
     initSocket(server);
     startServer(PORT);
 
-    autoCancelUnpaidOrders().catch(err => console.error('Order auto-cancel sweep failed:', err));
-    cron.schedule('0 * * * *', () => {
-      autoCancelUnpaidOrders().catch(err => console.error('Order auto-cancel sweep failed:', err));
+    autoCancelUnpaidOrders().catch((err) =>
+      console.error("Order auto-cancel sweep failed:", err),
+    );
+    cron.schedule("0 * * * *", () => {
+      autoCancelUnpaidOrders().catch((err) =>
+        console.error("Order auto-cancel sweep failed:", err),
+      );
     });
   })
-  .catch(err => { console.error('❌ MongoDB failed:', err.message); process.exit(1); });
+  .catch((err) => {
+    console.error("❌ MongoDB failed:", err.message);
+    process.exit(1);
+  });
 
 module.exports = app;
-
-
 
 // // server/index.js — with Google OAuth, Socket.io, Driver routes
 // require('dotenv').config();

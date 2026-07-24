@@ -24,6 +24,7 @@
 // "shirtcraft-*.vercel.app") means it only matches deploys under this
 // account, not any Vercel project anyone else might name similarly.
 // server/utils/corsOrigins.js
+// server/utils/corsOrigins.js
 const KNOWN_ORIGINS = [
   'https://shirtcraft-dob.vercel.app',
   'https://shirtcraft-*-david-orendu-benjamins-projects.vercel.app',
@@ -59,9 +60,12 @@ function corsOriginCheck(origin, callback) {
   callback(new Error(`CORS: origin ${origin} is not allowed`));
 }
 
-// This function returns JUST the base URL, nothing else
+// FIXED: More robust function with safety checks
 function getPrimaryFrontendUrl() {
-  const clientUrl = process.env.CLIENT_URL || '';
+  let clientUrl = process.env.CLIENT_URL || '';
+  
+  // Remove "CLIENT_URL=" if someone accidentally included it
+  clientUrl = clientUrl.replace(/^CLIENT_URL=/, '');
   
   if (clientUrl) {
     // Split by comma, take first, trim, remove trailing slash
@@ -74,7 +78,6 @@ function getPrimaryFrontendUrl() {
 }
 
 module.exports = { getAllowedOrigins, corsOriginCheck, getPrimaryFrontendUrl };
-
 
 
 // // server/utils/corsOrigins.js

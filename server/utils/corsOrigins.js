@@ -23,15 +23,12 @@
 // on the start. Scoping it to that exact team slug (rather than a bare
 // "shirtcraft-*.vercel.app") means it only matches deploys under this
 // account, not any Vercel project anyone else might name similarly.
+// server/utils/corsOrigins.js
 const KNOWN_ORIGINS = [
-  'https://shirtcraft-dob.vercel.app', // production (custom Vercel alias)
-  'https://shirtcraft-*-david-orendu-benjamins-projects.vercel.app', // this account's preview deploys
+  'https://shirtcraft-dob.vercel.app',
+  'https://shirtcraft-*-david-orendu-benjamins-projects.vercel.app',
 ];
 
-// Turns a wildcard pattern into a RegExp, escaping regex metacharacters
-// first. The previous version only replaced "*" and left the literal
-// dots in ".vercel.app" unescaped, so they'd match "any character"
-// instead of a literal dot — harmless in practice here, but wrong.
 function wildcardToRegExp(pattern) {
   const escaped = pattern
     .split('*')
@@ -42,59 +39,41 @@ function wildcardToRegExp(pattern) {
 
 function getAllowedOrigins() {
   const raw = process.env.CLIENT_URL || 'http://localhost:5173';
-
-  // Split by comma, trim, and drop any trailing slash — a browser's
-  // Origin header never has one, so "https://foo.vercel.app/" pasted
-  // into CLIENT_URL would otherwise never match anything and fail
-  // silently (no error, just a CORS block with no obvious cause).
   const configured = raw
     .split(',')
     .map(s => s.trim().replace(/\/+$/, ''))
     .filter(Boolean);
-
-  // De-duplicate in case CLIENT_URL already includes a known origin.
   return [...new Set([...configured, ...KNOWN_ORIGINS])];
 }
 
-// A cors()-compatible origin function: reflects the request's origin back
-// only if it's in the allow-list, otherwise blocks it. Requests with no
-// Origin header (server-to-server, curl, mobile apps) are allowed through.
 function corsOriginCheck(origin, callback) {
   if (!origin) return callback(null, true);
-
   const allowed = getAllowedOrigins();
   const isAllowed = allowed.some(allowedOrigin =>
     allowedOrigin.includes('*')
       ? wildcardToRegExp(allowedOrigin).test(origin)
       : allowedOrigin === origin
   );
-
   if (isAllowed) return callback(null, true);
-
   console.warn(`🚫 CORS blocked origin: ${origin} — allowed: ${allowed.join(', ')}`);
   callback(new Error(`CORS: origin ${origin} is not allowed`));
 }
 
-// Resolves ONE canonical frontend URL, for when the server needs to send a
-// browser somewhere (e.g. the Google OAuth redirect after login) — a
-// different job from getAllowedOrigins(), which is an unordered allow-list
-// for checking incoming request origins. The Google OAuth callback used to
-// reuse getAllowedOrigins()[0] for this, but that array puts whatever's in
-// CLIENT_URL first and the known production URL after — so if CLIENT_URL
-// isn't set on the host at all, element [0] silently fell back to
-// 'http://localhost:5173', and a real user signing in with Google in
-// production would get redirected to a dead localhost URL right after
-// approving access. This resolves the same way getAllowedOrigins() parses
-// CLIENT_URL (first entry, trimmed, trailing slash stripped) but falls back
-// to the real production URL instead of localhost.
+// This function returns JUST the base URL, nothing else
 function getPrimaryFrontendUrl() {
-  const first = (process.env.CLIENT_URL || '').split(',')[0].trim().replace(/\/+$/, '');
-  return first || 'https://shirtcraft-dob.vercel.app';
+  const clientUrl = process.env.CLIENT_URL || '';
+  
+  if (clientUrl) {
+    // Split by comma, take first, trim, remove trailing slash
+    const first = clientUrl.split(',')[0].trim().replace(/\/+$/, '');
+    return first;
+  }
+  
+  // Fallback for production
+  return 'https://shirtcraft-dob.vercel.app';
 }
 
 module.exports = { getAllowedOrigins, corsOriginCheck, getPrimaryFrontendUrl };
-
-
 
 
 

@@ -96,7 +96,7 @@ if (passport.googleEnabled) {
     passport.authenticate('google', { scope: ['profile', 'email'], session: true })
   );
 
-  // Google callback - FIXED
+  // Google callback - COMPLETELY FIXED
   app.get('/api/auth/google/callback',
     passport.authenticate('google', { 
       session: true, 
@@ -107,12 +107,12 @@ if (passport.googleEnabled) {
         // Get the frontend URL
         const frontendUrl = getPrimaryFrontendUrl();
         
-        // Log for debugging
+        // Debug logging
         console.log('🔍 OAuth Callback Debug:');
-        console.log('  - User exists:', !!req.user);
-        console.log('  - Token exists:', !!req.user?._jwtToken);
         console.log('  - Frontend URL:', frontendUrl);
         console.log('  - CLIENT_URL env:', process.env.CLIENT_URL || 'NOT SET');
+        console.log('  - User exists:', !!req.user);
+        console.log('  - Token exists:', !!req.user?._jwtToken);
         
         // Check if user and token exist
         if (!req.user || !req.user._jwtToken) {
@@ -126,13 +126,12 @@ if (passport.googleEnabled) {
         const email = encodeURIComponent(req.user.email || '');
         const role = req.user.role || 'customer';
         
-        // Build redirect URL
+        // Build the redirect URL - THIS IS THE CRITICAL PART
         const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&name=${name}&email=${email}&role=${role}`;
         
-        console.log('  - Redirect URL:', redirectUrl);
-        console.log('✅ OAuth Success - Redirecting to frontend');
+        console.log('✅ Redirecting to:', redirectUrl);
         
-        // Redirect to frontend
+        // Send them to the frontend
         res.redirect(redirectUrl);
         
       } catch (err) {
@@ -230,7 +229,6 @@ mongoose
   .catch(err => { console.error('❌ MongoDB failed:', err.message); process.exit(1); });
 
 module.exports = app;
-
 
 
 

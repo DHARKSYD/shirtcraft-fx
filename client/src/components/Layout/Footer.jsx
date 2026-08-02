@@ -46,7 +46,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="footer__bottom">
         <div className="container footer__bottom-inner">
-          <p>© {new Date().getFullYear()} ShirtCraft Nigeria. All rights reserved.</p>
+          <p>David Orendu Benjamin's Brain Activity © {new Date().getFullYear()} ShirtCraft Nigeria. All rights reserved.</p>
           <div className="footer__payment-badges">
             {['Paystack', 'Visa', 'Mastercard', 'Opay'].map(p => (
               <span key={p} className="footer__payment-badge">{p}</span>

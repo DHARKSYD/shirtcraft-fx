@@ -155,6 +155,25 @@
   position: relative;
 }
 
+@media (max-width: 600px) {
+  .admin-stat-card { padding: var(--space-4) var(--space-4); }
+  .admin-stat-card__label { font-size: 11px; }
+  .admin-stat-card__value { font-size: 18px; }
+  .admin-stat-card__icon { width:40px; height:40px; }
+  .admin-stat-card__change {
+    position: static;
+    margin-left: auto;
+    top: auto;
+    right: auto;
+    transform: none;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+  }
+}
+
 .admin-stat-card__icon {
   width: 44px;
   height: 44px;
@@ -313,15 +332,132 @@
 @media (max-width: 1024px) {
   .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .admin-charts-grid { grid-template-columns: 1fr; }
-  .admin-bottom-grid { grid-template-columns: 1fr; }
+  .admin-bottom-grid { grid-template-columns: 1fr; grid-auto-flow: row; }
   .admin-bottom-grid .admin-chart-card[style] { grid-column: auto; }
 }
 @media (max-width: 768px) {
   .admin-layout { grid-template-columns: 1fr; }
-  .admin-sidebar { display: none; }
   .admin-main { padding: var(--space-5); }
   .admin-stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+
+  /* Off-canvas sidebar for mobile */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+    z-index: 60;
+    display: flex;
+    background: var(--color-black);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  .admin-sidebar__mobile-close {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+  }
+
+  .admin-layout.sidebar-open .admin-sidebar { transform: translateX(0); }
+
+  .admin-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 50;
+  }
+
+  .admin-main__mobile-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+  }
+
+  .admin-mobile-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .admin-mobile-select {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+  }
+
+  .admin-layout.sidebar-open .admin-sidebar__mobile-close { display: inline-flex; }
 }
+
+/* Extra-small screens: avoid duplicate selects and ensure stat cards fit */
+@media (max-width: 480px) {
+  .admin-mobile-select { display: block; }
+
+  .admin-stats-grid { grid-template-columns: 1fr; gap: var(--space-3); }
+
+  .admin-stat-card {
+    padding: var(--space-4) var(--space-4);
+  }
+
+  .admin-stat-card__change {
+    top: var(--space-3);
+    right: var(--space-3);
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  /* If a page contains its own select, this keeps the header space small */
+  .admin-main__mobile-header { gap: var(--space-2); }
+  .admin-mobile-toggle { width:36px; height:36px; }
+}
+
+/* Hide mobile select at larger sizes to avoid duplicating page-level selects */
+@media (min-width: 481px) {
+  .admin-mobile-select { display: none; }
+}
+
+/* Improve table layout and make it responsive on small screens */
+@media (max-width: 600px) {
+  .admin-table { border: none; }
+  .admin-table thead { display: none; }
+  .admin-table tbody tr { display: block; margin-bottom: var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; }
+  .admin-table td { display: flex; justify-content: space-between; padding: 10px 12px; border-bottom: none; }
+  .admin-table td::before { content: attr(data-label); color: var(--text-muted); font-family: var(--font-mono); margin-right: 8px; }
+  .admin-table__id { font-weight: 700; }
+  .admin-table__total { font-weight: 700; }
+}
+
+/* Ensure bottom grid cards always stack on small screens and occupy full width */
+@media (max-width: 768px) {
+  .admin-bottom-grid { grid-template-columns: 1fr !important; grid-auto-flow: row !important; }
+  .admin-bottom-grid > * { grid-column: 1 / -1 !important; }
+}
+
+/* Slight zebra for readability on desktop */
+.admin-table tbody tr:nth-child(odd) td { background: rgba(0,0,0,0.02); }
 
 /* Admin dark mode semantic fixes */
 .admin-layout { background: var(--bg-secondary); }

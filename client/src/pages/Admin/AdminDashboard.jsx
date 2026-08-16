@@ -320,12 +320,12 @@ export default function AdminDashboard() {
                 <tbody>
                   {recentOrders.map(o => (
                     <tr key={o._id}>
-                      <td className="admin-table__id">{o.orderNumber}</td>
-                      <td style={{ fontSize:'0.8125rem', color:'var(--text-muted)' }}>{new Date(o.createdAt).toLocaleDateString()}</td>
-                      <td style={{ fontSize:'0.8125rem' }}>{o.user?.name || '—'}</td>
-                      <td style={{ fontSize:'0.8125rem' }}>{o.items?.reduce((s,i)=>s+i.quantity,0)||0} pcs</td>
-                      <td><span className={`admin-status admin-status--${o.status}`}>{o.status}</span></td>
-                      <td className="admin-table__total">₦{(o.total||0).toLocaleString()}</td>
+                      <td className="admin-table__id" data-label="Order #">{o.orderNumber}</td>
+                      <td data-label="Date" style={{ fontSize:'0.8125rem', color:'var(--text-muted)' }}>{new Date(o.createdAt).toLocaleDateString()}</td>
+                      <td data-label="Customer" style={{ fontSize:'0.8125rem' }}>{o.user?.name || '—'}</td>
+                      <td data-label="Items" style={{ fontSize:'0.8125rem' }}>{o.items?.reduce((s,i)=>s+i.quantity,0)||0} pcs</td>
+                      <td data-label="Status"><span className={`admin-status admin-status--${o.status}`}>{o.status}</span></td>
+                      <td className="admin-table__total" data-label="Total">₦{(o.total||0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

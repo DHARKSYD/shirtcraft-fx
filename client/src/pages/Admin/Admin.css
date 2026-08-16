@@ -144,10 +144,6 @@
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  /* Right padding reserves space for the absolutely-positioned
-     .admin-stat-card__change badge (top/right: var(--space-4), ~4.5rem
-     wide with its icon) so longer labels like "AVG. ORDER VALUE" never
-     run underneath it. */
   padding: var(--space-5) 4.75rem var(--space-5) var(--space-5);
   display: flex;
   align-items: center;
@@ -335,13 +331,37 @@
   .admin-bottom-grid { grid-template-columns: 1fr; grid-auto-flow: row; }
   .admin-bottom-grid .admin-chart-card[style] { grid-column: auto; }
 }
+
+/* Mobile and small-screen adjustments */
 @media (max-width: 768px) {
   .admin-layout { grid-template-columns: 1fr; }
   .admin-main { padding: var(--space-5); }
+
+  /* Compact horizontal admin nav on small screens */
+  .admin-sidebar {
+    display: flex;
+    flex-direction: row;
+    height: auto;
+    position: relative;
+    top: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    overflow-x: auto;
+    padding: 0 var(--space-2);
+    align-items: center;
+    background: var(--color-black);
+  }
+  .admin-sidebar__brand { padding: var(--space-3); }
+  .admin-sidebar__nav { flex-direction: row; gap: var(--space-2); padding: 0; }
+  .admin-sidebar__link { padding: 8px 12px; white-space: nowrap; border-radius: var(--radius-sm); }
+  .admin-sidebar__footer { display: none; }
+  /* Ensure main content is pushed below the compact nav */
+  .admin-main { margin-top: 60px; }
+
+  /* Make stat grid and charts stack nicely */
   .admin-stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
 
-  /* Off-canvas sidebar for mobile */
-  .admin-sidebar {
+  /* Off-canvas sidebar (used when toggled open) */
+  .admin-sidebar.offcanvas {
     position: fixed;
     top: 0;
     left: 0;
@@ -350,26 +370,10 @@
     transform: translateX(-100%);
     transition: transform 220ms ease;
     z-index: 60;
-    display: flex;
-    background: var(--color-black);
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
 
-  .admin-sidebar__mobile-close {
-    display: none;
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: rgba(255,255,255,0.8);
-    cursor: pointer;
-  }
-
-  .admin-layout.sidebar-open .admin-sidebar { transform: translateX(0); }
+  .admin-layout.sidebar-open .admin-sidebar.offcanvas { transform: translateX(0); }
 
   .admin-backdrop {
     position: fixed;
@@ -458,6 +462,12 @@
 
 /* Slight zebra for readability on desktop */
 .admin-table tbody tr:nth-child(odd) td { background: rgba(0,0,0,0.02); }
+
+/* Improve table wrapping and scrolling for very small screens */
+@media (max-width: 480px) {
+  .admin-table td, .admin-table th { min-width: 64px; word-break: break-word; }
+  .admin-table-wrap { -webkit-overflow-scrolling: touch; }
+}
 
 /* Admin dark mode semantic fixes */
 .admin-layout { background: var(--bg-secondary); }
